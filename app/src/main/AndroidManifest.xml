@@ -10,6 +10,9 @@
     <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
@@ -81,6 +84,7 @@
             android:launchMode="singleTop"
             android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <meta-data android:name="distractionOptimized" android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -93,12 +97,22 @@
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:label="@string/settings_title"
-            android:theme="@style/Theme.AABrowser" />
+            android:theme="@style/Theme.AABrowser">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
 
         <activity
             android:name="com.google.android.gms.oss.licenses.OssLicensesMenuActivity"
             android:exported="false"
-            android:theme="@style/Theme.AABrowser" />
+            android:theme="@style/Theme.AABrowser">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+
+        <service
+            android:name=".service.DrivingForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
 
     </application>
 

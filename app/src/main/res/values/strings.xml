@@ -243,4 +243,10 @@
     <string name="ssl_error_invalid">The certificate is invalid.</string>
     <string name="ssl_error_proceed">Proceed anyway (unsafe)</string>
     <string name="ssl_error_cancel">Go back to safety (recommended)</string>
+
+    <string name="driving_service_channel_name">Driving session</string>
+    <string name="driving_service_channel_description">Keeps AABrowser running in the background while you drive</string>
+    <string name="driving_service_text_driving">Running in drive mode — tap to return</string>
+    <string name="driving_service_text_parked">Ready to browse</string>
+    <string name="driving_mode_badge">Driving</string>
 </resources>

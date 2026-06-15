@@ -1,8 +1,10 @@
 package com.kododake.aabrowser
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
@@ -10,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.View
+import android.view.WindowManager
 import android.webkit.WebChromeClient
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -37,6 +40,7 @@ import com.kododake.aabrowser.model.QuickActionButtonMode
 import com.kododake.aabrowser.model.UserAgentProfile
 import com.kododake.aabrowser.navigation.NavigationManager
 import com.kododake.aabrowser.permissions.PermissionManager
+import com.kododake.aabrowser.service.DrivingForegroundService
 import com.kododake.aabrowser.startpage.StartPageManager
 import com.kododake.aabrowser.tabs.BrowserTab
 import com.kododake.aabrowser.tabs.TabManager
@@ -117,6 +121,10 @@ class MainActivity : AppCompatActivity() {
     var latestReleaseUrl: String = "https://github.com/kododake/AABrowser/releases"
         private set
 
+    // Driving mode state
+    private var isDrivingMode: Boolean = false
+    private var drivingStateReceiver: BroadcastReceiver? = null
+
     // Proxy methods for MainActivitySetup
     val currentUrlProxy: String
         get() {
@@ -181,7 +189,11 @@ class MainActivity : AppCompatActivity() {
         binding.menuVersion.text = "v${BuildConfig.VERSION_NAME}"
         setupUi()
         setupBackPressHandling()
-        
+        registerDrivingStateReceiver()
+
+        // Start the foreground service so the app stays alive while driving
+        DrivingForegroundService.start(this)
+
         permissionManager.ensureNotificationPermissionIfNeeded(REQUEST_CODE_POST_NOTIFICATIONS)
         showFreeDroidWarnOnUpgradeMaterial()
     }
@@ -219,6 +231,7 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacks(showMenuFabRunnable)
         uiManager.exitFullscreen()
         startPageManager.onDestroy()
+        unregisterDrivingStateReceiver()
         
         tabManager.browserTabs.forEach { tab ->
             tab.speechBridge.destroy()
@@ -502,6 +515,45 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
         dialog.getButton(DialogInterface.BUTTON_NEUTRAL)?.setTextColor(themeManager.resolveThemeColor(androidx.appcompat.R.attr.colorError))
     }
+
+    // ── Driving mode ─────────────────────────────────────────────────────────
+
+    private fun registerDrivingStateReceiver() {
+        drivingStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != DrivingForegroundService.ACTION_DRIVING_STATE_CHANGED) return
+                val driving = intent.getBooleanExtra(DrivingForegroundService.EXTRA_IS_DRIVING, false)
+                onDrivingStateChanged(driving)
+            }
+        }
+        registerReceiver(
+            drivingStateReceiver,
+            IntentFilter(DrivingForegroundService.ACTION_DRIVING_STATE_CHANGED),
+            RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    private fun unregisterDrivingStateReceiver() {
+        drivingStateReceiver?.let { runCatching { unregisterReceiver(it) } }
+        drivingStateReceiver = null
+    }
+
+    private fun onDrivingStateChanged(driving: Boolean) {
+        isDrivingMode = driving
+        // Keep the screen on while the car is moving so the display stays active
+        if (driving) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        // Ensure address fields remain editable regardless of UX restrictions
+        binding.addressEdit.isEnabled = true
+        binding.persistentAddressEdit.isEnabled = true
+        binding.buttonGo.isEnabled = true
+        binding.persistentButtonGo.isEnabled = true
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     private fun createBookmarkCallbacks() = object : BookmarkManager.BookmarkCallbacks {
         override fun onNavigateToUrl(url: String) { 

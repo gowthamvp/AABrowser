@@ -101,6 +101,11 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 }
 
 dependencies {
+    val sdkRoot = System.getenv("ANDROID_HOME") ?: "${System.getProperty("user.home")}/Library/Android/sdk"
+    val carJar = file("$sdkRoot/platforms/android-${android.compileSdk}/optional/android.car.jar").takeIf { it.exists() }
+        ?: file("$sdkRoot/platforms/android-${android.compileSdk}.0/optional/android.car.jar")
+    compileOnly(files(carJar))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.ktx)
